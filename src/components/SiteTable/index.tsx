@@ -1,15 +1,19 @@
-import { useState, useEffect, useMemo, MouseEvent, ChangeEvent } from "react";
-import * as React from "react";
+import { useState, useEffect, MouseEvent, ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "@mui/material/styles";
-import { Box, Typography } from "@mui/material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableFooter from "@mui/material/TableFooter";
-import TablePagination from "@mui/material/TablePagination";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
+import {
+  Box,
+  Typography,
+  TableHead,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableFooter,
+  TablePagination,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
@@ -17,6 +21,8 @@ import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 
 import { Container } from "@mui/material";
+import { SiteModal } from "../SiteModal";
+import { getImageName } from "../../utils/getImageName";
 
 interface Row {
   appId: string;
@@ -105,6 +111,8 @@ export default function SiteTable() {
   const [total, setTotal] = useState<null | number>(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [showModal, setShowModal] = useState(false);
+  const [id, setId] = useState<string | null>(null);
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows = total
@@ -112,6 +120,19 @@ export default function SiteTable() {
       ? Math.max(0, (1 + page) * rowsPerPage - total)
       : 0
     : 0;
+
+  const handleOpenModal = (id: string) => {
+    setId(id);
+    window.location.hash = `appId-${id}`;
+    document.body.style.overflow = "hidden";
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    window.history.replaceState(null, "", window.location.href.split("#")[0]);
+    setId(null);
+    document.body.style.overflow = "";
+  };
 
   const handleChangePage = (
     event: MouseEvent<HTMLButtonElement> | null,
@@ -126,7 +147,9 @@ export default function SiteTable() {
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+    getInventory(0, parseInt(event.target.value, 10));
   };
+
   const getInventory = async (currenPage = 0, perPage = 25) => {
     try {
       const response = await fetch("/api/v1/app-service/get-apps", {
@@ -147,7 +170,6 @@ export default function SiteTable() {
 
       const result = await response.json();
       setData(result);
-      console.log(result);
       setTotal(result.totalCount);
     } catch (error) {
       setError(true);
@@ -159,6 +181,13 @@ export default function SiteTable() {
   useEffect(() => {
     getInventory();
   }, [total]);
+
+  useEffect(() => {
+    if (window.location.hash.includes("appId-")) {
+      setShowModal(true);
+      setId(window.location.hash.replace("#appId-", ""));
+    }
+  }, [id]);
 
   return (
     <Box
@@ -178,7 +207,9 @@ export default function SiteTable() {
         </Typography>
 
         {error ? (
-          <Typography color="error">Something went wrong!</Typography>
+          <Typography color="error">
+            Something went wrong! Please refresh the page...
+          </Typography>
         ) : (
           data && (
             <TableContainer component={Paper}>
@@ -186,10 +217,22 @@ export default function SiteTable() {
                 sx={{ minWidth: 500 }}
                 aria-label="custom pagination table"
               >
+                <TableHead>
+                  <TableRow>
+                    <TableCell component="th">Name</TableCell>
+                    <TableCell component="th">Category</TableCell>
+                    <TableCell component="th">Connector</TableCell>
+                  </TableRow>
+                </TableHead>
                 <TableBody>
-                  {data?.appRows?.map((row: Row, index) => (
-                    <TableRow key={row.appId}>
-                      <TableCell component="td" scope="row">
+                  {data?.appRows?.map((row: Row) => (
+                    <TableRow
+                      key={row.appId}
+                      hover
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => handleOpenModal(row.appId)}
+                    >
+                      <TableCell>
                         <Box display={"flex"} alignItems={"center"} gap={1}>
                           <Box
                             component={"img"}
@@ -204,6 +247,26 @@ export default function SiteTable() {
                         </Box>
                       </TableCell>
                       <TableCell align="left">{row.category}</TableCell>
+                      <TableCell>
+                        <Box display={"flex"} alignItems={"center"} gap={1}>
+                          {row.appSources.map((item, index) => {
+                            const name = getImageName(item);
+
+                            return (
+                              <Box
+                                key={index}
+                                component={"img"}
+                                src={`https://cdn.brandfetch.io/${name}`}
+                                width={40}
+                                height={40}
+                                borderRadius={"50%"}
+                                border={"1px solid gray"}
+                                loading="lazy"
+                              ></Box>
+                            );
+                          })}
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {emptyRows > 0 && (
@@ -239,6 +302,11 @@ export default function SiteTable() {
           )
         )}
       </Container>
+      {showModal &&
+        createPortal(
+          <SiteModal id={id} closeFunctional={handleCloseModal} />,
+          document.body
+        )}
     </Box>
   );
 }

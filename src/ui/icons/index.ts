@@ -1,2 +1,3 @@
-export { ChevronIcon } from "./chevron";
-export { FaqIcon } from "./faq";
+export { CloseIcon } from "./CloseIcon";
+export { ChevronIcon } from "./ChevronIcon";
+export { FaqIcon } from "./FaqIcon";
