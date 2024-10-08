@@ -22,6 +22,7 @@ import LastPageIcon from "@mui/icons-material/LastPage";
 
 import { Container } from "@mui/material";
 import { SiteModal } from "../SiteModal";
+import { getImageName } from "../../utils/getImageName";
 
 interface Row {
   appId: string;
@@ -111,6 +112,7 @@ export default function SiteTable() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [showModal, setShowModal] = useState(false);
+  const [id, setId] = useState<string | null>(null);
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows = total
@@ -119,8 +121,17 @@ export default function SiteTable() {
       : 0
     : 0;
 
-  const handleOpenModal = (event: MouseEvent<unknown>, id: string) => {
-    setShowModal(true);
+  const handleOpenModal = (id: string) => {
+    setId(id);
+    window.location.hash = `appId-${id}`;
+    document.body.style.overflow = "hidden";
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    window.history.replaceState(null, "", window.location.href.split("#")[0]);
+    setId(null);
+    document.body.style.overflow = "";
   };
 
   const handleChangePage = (
@@ -138,6 +149,7 @@ export default function SiteTable() {
     setPage(0);
     getInventory(0, parseInt(event.target.value, 10));
   };
+
   const getInventory = async (currenPage = 0, perPage = 25) => {
     try {
       const response = await fetch("/api/v1/app-service/get-apps", {
@@ -158,7 +170,6 @@ export default function SiteTable() {
 
       const result = await response.json();
       setData(result);
-      console.log(result);
       setTotal(result.totalCount);
     } catch (error) {
       setError(true);
@@ -170,6 +181,13 @@ export default function SiteTable() {
   useEffect(() => {
     getInventory();
   }, [total]);
+
+  useEffect(() => {
+    if (window.location.hash.includes("appId-")) {
+      setShowModal(true);
+      setId(window.location.hash.replace("#appId-", ""));
+    }
+  }, [id]);
 
   return (
     <Box
@@ -189,7 +207,9 @@ export default function SiteTable() {
         </Typography>
 
         {error ? (
-          <Typography color="error">Something went wrong!</Typography>
+          <Typography color="error">
+            Something went wrong! Please refresh the page...
+          </Typography>
         ) : (
           data && (
             <TableContainer component={Paper}>
@@ -210,7 +230,7 @@ export default function SiteTable() {
                       key={row.appId}
                       hover
                       sx={{ cursor: "pointer" }}
-                      onClick={(event) => handleOpenModal(event, row.appId)}
+                      onClick={() => handleOpenModal(row.appId)}
                     >
                       <TableCell>
                         <Box display={"flex"} alignItems={"center"} gap={1}>
@@ -230,10 +250,8 @@ export default function SiteTable() {
                       <TableCell>
                         <Box display={"flex"} alignItems={"center"} gap={1}>
                           {row.appSources.map((item, index) => {
-                            let name = `${item
-                              .toLowerCase()
-                              .replace("app_source_", "")
-                              .replace("msft", "microsoft")}.com`;
+                            const name = getImageName(item);
+
                             return (
                               <Box
                                 key={index}
@@ -284,7 +302,11 @@ export default function SiteTable() {
           )
         )}
       </Container>
-      {showModal && createPortal(<SiteModal />, document.body)}
+      {showModal &&
+        createPortal(
+          <SiteModal id={id} closeFunctional={handleCloseModal} />,
+          document.body
+        )}
     </Box>
   );
 }
