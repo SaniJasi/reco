@@ -187,45 +187,22 @@ function SiteHeader() {
               <React.Fragment key={id}>
                 <Button
                   onClick={handleOpenUserMenu}
-                  sx={{ my: 2, color: "white", display: "block" }}
                   component="a"
                   href={slug}
+                  sx={{
+                    fontSize: "14px",
+                    textTransform: "none",
+                    color: "#E8E9FF",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    padding: "20px 24px",
+                  }}
                   aria-controls={`menu-appbar-${id}`}
                 >
                   {name}
                   {submenu && submenu.length > 0 && <ChevronIcon />}
                 </Button>
-
-                {submenu && submenu.length > 0 && (
-                  <Menu
-                    sx={{ mt: "45px" }}
-                    id={`menu-appbar-${id}`}
-                    anchorEl={anchorElUser}
-                    anchorOrigin={{
-                      vertical: "top",
-                      horizontal: "right",
-                    }}
-                    keepMounted
-                    transformOrigin={{
-                      vertical: "top",
-                      horizontal: "right",
-                    }}
-                    open={Boolean(anchorElUser)}
-                    onClose={handleCloseUserMenu}
-                  >
-                    {submenu.map(({ id: childId, name, slug }) => (
-                      <MenuItem key={childId} onClick={handleCloseUserMenu}>
-                        <Typography
-                          sx={{ textAlign: "center" }}
-                          component="a"
-                          href={slug}
-                        >
-                          {name}
-                        </Typography>
-                      </MenuItem>
-                    ))}
-                  </Menu>
-                )}
               </React.Fragment>
             ))}
           </Box>
@@ -239,7 +216,6 @@ function SiteHeader() {
                     sx={{ width: 20, height: 20, mr: 1 }}
                   />
                   <Typography
-                    fontWeight={600}
                     component="span"
                     color="white"
                     textTransform={"none"}
